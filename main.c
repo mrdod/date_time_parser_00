@@ -20,24 +20,253 @@ typedef enum {
 // Prototypes
 bool dateIsValid(  char* dateTimePtr, char* delimPtr );
 bool inputIsValid( char* dateTimePtr, int* dateTimeIndexPtr, int length, int minConf, int maxConf );
-
+void unitTests( char* delimPtr );
 
 int main()
 {
-    bool result = false;
-
-    char* inputDate = "2020-12-15T03:15:25+03:00";
     char* delimPtr= "--T:::";
 
+    // Unit Test harness
+    unitTests( delimPtr );
+}
+
+
+/*
+ * Date is Valid
+ *
+ * Parses input data time string and returns true if has valid format / contains valid values
+ *
+ * Inputs
+ *   dateTimePtr - char array containing the timestamp we want to validate
+ *   delimPtr    - char array containing the deliminators we are looking for in the timestamp
+ *
+ * Outputs
+ *   true if valid, false if mot valid or error
+ *
+ */
+
+bool dateIsValid( char* dateTimePtr, char* delimPtr ){
+    int dateTimeIndex = 0;
+    int delimIndex    = 0;
+
+    TIME_DATE_E state      = YEAR;
+    TIME_DATE_E savedState = YEAR;
+
+    int dateTimePtrSize = strlen( dateTimePtr );
+
     /*
-    ** Test cases
+    ** State machine to walk through the timestamp and determine if valid
     */
+    while( true ){
+        switch( state ){
+            case( YEAR ):
+            {
+                #define YEAR_LEN (4)
+                #define YEAR_MIN (0)
+                #define YEAR_MAX (9999)
+
+                if( !inputIsValid(dateTimePtr, &dateTimeIndex, YEAR_LEN, YEAR_MIN, YEAR_MAX) ){
+                    return false;
+                }
+
+                savedState = YEAR;
+                state = DELIM;
+
+                break;
+            }
+            case( DELIM ):
+            {
+                if(delimPtr[delimIndex++] != dateTimePtr[dateTimeIndex++]){
+                    return false;
+                }
+
+                state = ++savedState;
+
+                break;
+            }
+            case( MONTH ):
+            {
+                #define MONTH_LEN (2)
+                #define MONTH_MIN (0)
+                #define MONTH_MAX (12)
+
+                if( !inputIsValid(dateTimePtr, &dateTimeIndex, MONTH_LEN, MONTH_MIN, MONTH_MAX) ){
+                    return false;
+                }
+
+                savedState = MONTH;
+                state = DELIM;
+
+                break;
+            }
+            case( DAY ):
+            {
+                #define DAY_LEN (2)
+                #define DAY_MIN (0)
+                #define DAY_MAX (31)
+
+                if( !inputIsValid(dateTimePtr, &dateTimeIndex, DAY_LEN, DAY_MIN, DAY_MAX) ){
+                    return false;
+                }
+
+                savedState = DAY;
+                state = DELIM;
+
+                break;
+            }
+            case( HOUR ):
+            {
+                #define HOUR_LEN (2)
+                #define HOUR_MIN (0)
+                #define HOUR_MAX (23)
+
+                if( !inputIsValid(dateTimePtr, &dateTimeIndex, HOUR_LEN, HOUR_MIN, HOUR_MAX) ){
+                    return false;
+                }
+
+                savedState = HOUR;
+                state = DELIM;
+
+                break;
+            }
+            case( MIN ):
+            {
+                #define MIN_LEN (2)
+                #define MIN_MIN (0)
+                #define MIN_MAX (59)
+
+                if( !inputIsValid(dateTimePtr, &dateTimeIndex, MIN_LEN, MIN_MIN, MIN_MAX) ){
+                    return false;
+                }
+
+                savedState = MIN;
+                state = DELIM;
+
+                break;
+            }
+            case( SECOND ):
+            {
+                #define SECOND_LEN (2)
+                #define SECOND_MIN (0)
+                #define SECOND_MAX (59)
+
+                if( !inputIsValid(dateTimePtr, &dateTimeIndex, SECOND_LEN, SECOND_MIN, SECOND_MAX) ){
+                    return false;
+                }
+
+                // Drop through
+            }
+            case( TZ ):
+            {
+                // Z stands for UTC or +00.00, if end of timestamp, return success
+                if( (dateTimePtr[dateTimeIndex] == 'Z') && ((dateTimeIndex + 1) == dateTimePtrSize) ){
+                    return true;
+                // Ensure sign is included
+                } else if( (dateTimePtr[dateTimeIndex] != '+') && (dateTimePtr[dateTimeIndex] != '-') ){
+                    return false;
+                }
+
+                dateTimeIndex++;
+
+                // Drop through
+            }
+            case( TZHOUR ):
+            {
+                #define TZHOUR_LEN (2)
+                #define TZHOUR_MIN (0)
+                #define TZHOUR_MAX (23)
+
+                if( !inputIsValid(dateTimePtr, &dateTimeIndex, TZHOUR_LEN, TZHOUR_MIN, TZHOUR_MAX) ){
+                    return false;
+                }
+
+                savedState = TZHOUR;
+                state = DELIM;
+
+                break;
+            }
+            case( TZMIN ):
+            {
+                #define TZMIN_LEN (2)
+                #define TZMIN_MIN (0)
+                #define TZMIN_MAX (59)
+
+                if( !inputIsValid(dateTimePtr, &dateTimeIndex, TZMIN_LEN, TZMIN_MIN, TZMIN_MAX) ){
+                    return false;
+                }
+
+                // Success if we are at end of timestamp
+                return( (bool)(dateTimeIndex == dateTimePtrSize) );
+            }
+            default:
+            {
+               return false;
+            }
+        }
+    }
+
+    // If we got here something is wrong
+    return false;
+}
+
+
+/*
+ * Input Is Valid
+ *
+ * Convert Input from string to integer and check to ensure it is within range
+ *
+ * Inputs:
+ *   dateTimePtr      - Pointer to entire dateTimePtr being evaluated
+ *   dateTimeIndexPtr - Pointer to current index of dateTimePtr
+ *   length           - length of substring being evaluated
+ *   minConf          - minimum value to be considered valid
+ *   maxConf          - maximum value to be considered valid
+ *
+ * Return: true if valid, false if not valid
+ *
+ */
+bool inputIsValid( char* dateTimePtr, int* dateTimeIndexPtr, int length, int minConf, int maxConf ){
+    bool retVal       = false;
+    bool numCheckFail = false;
+
+    if( dateTimePtr && dateTimeIndexPtr ){
+        char* localString = (char*) calloc( length, sizeof(char) );
+        int localInt = 0;
+
+        // Copy chars up for eval into local buffer
+        for( int index = 0; index < length; index++ ){
+            localString[index] = dateTimePtr[(*dateTimeIndexPtr)++];
+
+            // Ensure all entries are numbers
+            if( localString[index] < '0' || localString[index] > '9'){
+                numCheckFail = true;
+            }
+        }
+
+        // Convert from string to int
+        localInt = atoi( localString );
+
+        // Compare to valid range and return result
+        retVal = (bool)( !numCheckFail && (localInt >= minConf) && (localInt <= maxConf));
+
+        free( localString );
+    }
+
+    return( retVal );
+}
+
+
+/*
+** Test cases
+*/
+void unitTests( char* delimPtr ){
+
+    char* inputDate = "2020-12-15T03:15:25+03:00";
+    bool result = dateIsValid( inputDate, delimPtr );
 
     printf("Sanity Valid Test Case\n");
 
     // Valid
-    inputDate = "2020-12-15T03:15:25+03:00";
-    result = dateIsValid( inputDate, delimPtr );
     printf( "Input:%s   Expected Result: 1    Actual Result: %d\n", inputDate, result );
 
     /*
@@ -266,222 +495,5 @@ int main()
     result = dateIsValid( inputDate, delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 }
-
-
-/*
- * Date is Valid
- *
- * Parses input data time string and returns true if has valid format / contains valid values
- */
-
-bool dateIsValid( char* dateTimePtr, char* delimPtr ){
-    int dateTimeIndex = 0;
-    int delimIndex    = 0;
-
-    TIME_DATE_E state      = YEAR;
-    TIME_DATE_E savedState = YEAR;
-
-    int dateTimePtrSize = strlen( dateTimePtr );
-
-    while( true ){
-        switch( state ){
-            case( YEAR ):
-            {
-                #define YEAR_LEN (4)
-                #define YEAR_MIN (0)
-                #define YEAR_MAX (9999)
-
-                if( !inputIsValid(dateTimePtr, &dateTimeIndex, YEAR_LEN, YEAR_MIN, YEAR_MAX) ){
-                    return false;
-                }
-
-                savedState = YEAR;
-                state = DELIM;
-
-                break;
-            }
-            case( DELIM ):
-            {
-                if(delimPtr[delimIndex++] != dateTimePtr[dateTimeIndex++]){
-                    return false;
-                }
-
-                state = ++savedState;
-
-                break;
-            }
-            case( MONTH ):
-            {
-                #define MONTH_LEN (2)
-                #define MONTH_MIN (0)
-                #define MONTH_MAX (12)
-
-                if( !inputIsValid(dateTimePtr, &dateTimeIndex, MONTH_LEN, MONTH_MIN, MONTH_MAX) ){
-                    return false;
-                }
-
-                savedState = MONTH;
-                state = DELIM;
-
-                break;
-            }
-            case( DAY ):
-            {
-                #define DAY_LEN (2)
-                #define DAY_MIN (0)
-                #define DAY_MAX (31)
-
-                if( !inputIsValid(dateTimePtr, &dateTimeIndex, DAY_LEN, DAY_MIN, DAY_MAX) ){
-                    return false;
-                }
-
-                savedState = DAY;
-                state = DELIM;
-
-                break;
-            }
-            case( HOUR ):
-            {
-                #define HOUR_LEN (2)
-                #define HOUR_MIN (0)
-                #define HOUR_MAX (23)
-
-                if( !inputIsValid(dateTimePtr, &dateTimeIndex, HOUR_LEN, HOUR_MIN, HOUR_MAX) ){
-                    return false;
-                }
-
-                savedState = HOUR;
-                state = DELIM;
-
-                break;
-            }
-            case( MIN ):
-            {
-                #define MIN_LEN (2)
-                #define MIN_MIN (0)
-                #define MIN_MAX (59)
-
-                if( !inputIsValid(dateTimePtr, &dateTimeIndex, MIN_LEN, MIN_MIN, MIN_MAX) ){
-                    return false;
-                }
-
-                savedState = MIN;
-                state = DELIM;
-
-                break;
-            }
-            case( SECOND ):
-            {
-                #define SECOND_LEN (2)
-                #define SECOND_MIN (0)
-                #define SECOND_MAX (59)
-
-                if( !inputIsValid(dateTimePtr, &dateTimeIndex, SECOND_LEN, SECOND_MIN, SECOND_MAX) ){
-                    return false;
-                }
-
-                // Drop through
-            }
-            case( TZ ):
-            {
-                // Z stands for UTC or +00.00, if end of timestamp, return success
-                if( (dateTimePtr[dateTimeIndex] == 'Z') && ((dateTimeIndex + 1) == dateTimePtrSize) ){
-                    return true;
-                // Ensure sign is included
-                } else if( (dateTimePtr[dateTimeIndex] != '+') && (dateTimePtr[dateTimeIndex] != '-') ){
-                    return false;
-                }
-
-                dateTimeIndex++;
-
-                // Drop through
-            }
-            case( TZHOUR ):
-            {
-                #define TZHOUR_LEN (2)
-                #define TZHOUR_MIN (0)
-                #define TZHOUR_MAX (23)
-
-                if( !inputIsValid(dateTimePtr, &dateTimeIndex, TZHOUR_LEN, TZHOUR_MIN, TZHOUR_MAX) ){
-                    return false;
-                }
-
-                savedState = TZHOUR;
-                state = DELIM;
-
-                break;
-            }
-            case( TZMIN ):
-            {
-                #define TZMIN_LEN (2)
-                #define TZMIN_MIN (0)
-                #define TZMIN_MAX (59)
-
-                if( !inputIsValid(dateTimePtr, &dateTimeIndex, TZMIN_LEN, TZMIN_MIN, TZMIN_MAX) ){
-                    return false;
-                }
-
-                // Success if we are at end of timestamp
-                return( (bool)(dateTimeIndex == dateTimePtrSize) );
-            }
-            default:
-            {
-               return false;
-            }
-        }
-    }
-
-    // If we got here something is wrong
-    return false;
-}
-
-
-/*
- * Input Is Valid
- *
- * Convert Input from string to integer and check to ensure it is within range
- *
- * Inputs:
- *   dateTimePtr      - Pointer to entire dateTimePtr being evaluated
- *   dateTimeIndexPtr - Pointer to current index of dateTimePtr
- *   length           - length of substring being evaluated
- *   minConf          - minimum value to be considered valid
- *   maxConf          - maximum value to be considered valid
- *
- * Return: true if valid, false if not valid
- *
- */
-bool inputIsValid( char* dateTimePtr, int* dateTimeIndexPtr, int length, int minConf, int maxConf ){
-    bool retVal       = false;
-    bool numCheckFail = false;
-
-    if( dateTimePtr && dateTimeIndexPtr ){
-        char* localString = (char*) calloc( length, sizeof(char) );
-        int localInt = 0;
-
-        // Copy chars up for eval into local buffer
-        for( int index = 0; index < length; index++ ){
-            localString[index] = dateTimePtr[(*dateTimeIndexPtr)++];
-
-            // Ensure all entries are numbers
-            if( localString[index] < '0' || localString[index] > '9'){
-                numCheckFail = true;
-            }
-        }
-
-        // Convert from string to int
-        localInt = atoi( localString );
-
-        // Compare to valid range and return result
-        retVal = (bool)( !numCheckFail && (localInt >= minConf) && (localInt <= maxConf));
-
-        free(localString);
-    }
-
-    return( retVal );
-}
-
-
-
 
 
