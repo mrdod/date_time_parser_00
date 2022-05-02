@@ -2,31 +2,74 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <generateTestFile.h>
+#include <main.h>
 
-typedef enum {
-     YEAR = 0,
-     MONTH,
-     DAY,
-     HOUR,
-     MIN,
-     SECOND,
-     TZ,
-     TZHOUR,
-     TZMIN,
-     DELIM
-} TIME_DATE_E;
-
+#define INPUT_BUFFER_LEN (30)
 
 // Prototypes
-bool dateIsValid(  char* dateTimePtr, char* delimPtr );
+bool dateIsValid(  char* dateTimePtr, int dateTimePtrLen, char* delimPtr );
 bool inputIsValid( char* dateTimePtr, int* dateTimeIndexPtr, int length, int minConf, int maxConf );
 void unitTests( char* delimPtr );
 
+
 int main()
 {
+    FILE* inputFPtr;
+    FILE* outputFPtr;
     char* delimPtr= "--T:::";
+    char inputDate[INPUT_BUFFER_LEN];
+    long totalCounter = 0;
+    long validCounter = 0;
+    int dateTimePtrLen = 0;
 
-    // Unit Test harness
+    /*
+    ** Generate Test File
+    */
+    //generateTestFile( 1000000 );
+
+
+    /*
+    ** Date / Time Stamp Validation
+    */
+    // Open file
+    inputFPtr = fopen("input_values.txt","r");
+    outputFPtr = fopen("output_values.txt","w+");
+
+    // Read file line by line and run validation
+    while( !feof(inputFPtr) ){
+        // Pull in full line from file
+        if( inputDate != fgets(inputDate, INPUT_BUFFER_LEN, inputFPtr) ){
+            break;
+        }
+
+        totalCounter++;
+
+        // Find the end of string so we can pass to validation function
+        for( int index = 0; index < INPUT_BUFFER_LEN; index++ ){
+            if( inputDate[index] == '\n' ){
+                dateTimePtrLen = index;
+                break;
+            }
+        }
+
+        // Run validation function on line. If valid, print to output file
+        if( dateIsValid(inputDate, dateTimePtrLen, delimPtr) ){
+            fprintf( outputFPtr, "%s\n", inputDate );
+
+            validCounter++;
+        }
+    }
+
+    fclose( inputFPtr );
+    fclose( outputFPtr );
+
+    printf( "Task completed. %lu of %lu entries valid\n", validCounter, totalCounter );
+
+
+    /*
+    ** Unit Tests
+    */
     unitTests( delimPtr );
 }
 
@@ -42,17 +85,14 @@ int main()
  *
  * Outputs
  *   true if valid, false if mot valid or error
- *
  */
 
-bool dateIsValid( char* dateTimePtr, char* delimPtr ){
+bool dateIsValid( char* dateTimePtr, int dateTimePtrLen, char* delimPtr ){
     int dateTimeIndex = 0;
     int delimIndex    = 0;
 
     TIME_DATE_E state      = YEAR;
     TIME_DATE_E savedState = YEAR;
-
-    int dateTimePtrSize = strlen( dateTimePtr );
 
     /*
     ** State machine to walk through the timestamp and determine if valid
@@ -159,7 +199,7 @@ bool dateIsValid( char* dateTimePtr, char* delimPtr ){
             case( TZ ):
             {
                 // Z stands for UTC or +00.00, if end of timestamp, return success
-                if( (dateTimePtr[dateTimeIndex] == 'Z') && ((dateTimeIndex + 1) == dateTimePtrSize) ){
+                if( (dateTimePtr[dateTimeIndex] == 'Z') && ((dateTimeIndex + 1) == dateTimePtrLen) ){
                     return true;
                 // Ensure sign is included
                 } else if( (dateTimePtr[dateTimeIndex] != '+') && (dateTimePtr[dateTimeIndex] != '-') ){
@@ -196,7 +236,7 @@ bool dateIsValid( char* dateTimePtr, char* delimPtr ){
                 }
 
                 // Success if we are at end of timestamp
-                return( (bool)(dateTimeIndex == dateTimePtrSize) );
+                return( (bool)(dateTimeIndex == dateTimePtrLen) );
             }
             default:
             {
@@ -262,7 +302,7 @@ bool inputIsValid( char* dateTimePtr, int* dateTimeIndexPtr, int length, int min
 void unitTests( char* delimPtr ){
 
     char* inputDate = "2020-12-15T03:15:25+03:00";
-    bool result = dateIsValid( inputDate, delimPtr );
+    bool result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
 
     printf("Sanity Valid Test Case\n");
 
@@ -276,47 +316,47 @@ void unitTests( char* delimPtr ){
 
     // First Delim incorrect
     inputDate = "2020+12-15T03:15:25+03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Second Delim incorrect
     inputDate = "2020-12&15T03:15:25+03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Third Delim incorrect
     inputDate = "2020-12-15A03:15:25+03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Fourth Delim incorrect
     inputDate = "2020-12-15T03#15:25+03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Fifth Delim incorrect
     inputDate = "2020-12-15T03:15^25+03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Sixth Delim incorrect
     inputDate = "2020-12-15T03:15:25%03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Seventh Delim incorrect
     inputDate = "2020-12-15T03:15:25+03=00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // All Delim incorrect
     inputDate = "2020%12@15)03(15~25`03]00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Delim as numbers
     inputDate = "2020112215303415525603700";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     /*
@@ -326,117 +366,117 @@ void unitTests( char* delimPtr ){
 
     // Max Values
     inputDate = "9999-12-31T23:59:59+23:59";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 1    Actual Result: %d\n", inputDate, result );
 
     // Min Values
     inputDate = "0000-01-01T00:00:00+00:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 1    Actual Result: %d\n", inputDate, result );
 
     // Max Month Exceeded
     inputDate = "2020-13-15T03:15:25+03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Max Day Exceeded
     inputDate = "2020-12-32T03:15:25+03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Max Hour Exceeded
     inputDate = "2020-12-15T24:15:25+03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Max Minute Exceeded
     inputDate = "2020-12-15T03:60:25+03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Max Second Exceeded
     inputDate = "2020-12-15T03:15:60+03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Year with letter
     inputDate = "202A-12-15T03:15:25+03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Month with letter 1
     inputDate = "2020-A2-15T03:15:25+03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Month with letter 2
     inputDate = "2020-1A-15T03:15:25+03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Month with letter 3
     inputDate = "2020-AA-15T03:15:25+03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Day with letter 1
     inputDate = "2020-12-1AT03:15:25+03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Day with letter 2
     inputDate = "2020-12-A5T03:15:25+03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Day with letter 3
     inputDate = "2020-12-AAT03:15:25+03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Hour with letter 1
     inputDate = "2020-12-15TA3:15:25+03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Hour with letter 2
     inputDate = "2020-12-15T0A:15:25+03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Hour with letter 3
     inputDate = "2020-12-15TAA:15:25+03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Minute with letter 1
     inputDate = "2020-12-15T03:A5:25+03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Minute with letter 2
     inputDate = "2020-12-15T03:1A:25+03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Minute with letter 3
     inputDate = "2020-12-15T03:AA:25+03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Second with letter 1
     inputDate = "2020-12-15T03:15:A5+03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Second with letter 2
     inputDate = "2020-12-15T03:15:2A+03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Second with letter 3
     inputDate = "2020-12-15T03:15:AA+03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
 
@@ -447,52 +487,52 @@ void unitTests( char* delimPtr ){
 
     // Negative TZ
     inputDate = "2020-12-15T03:15:25-03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 1    Actual Result: %d\n", inputDate, result );
 
     // TZ Hour With Letters 1
     inputDate = "2020-12-15T03:15:25+A3:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // TZ Hour With Letters 2
     inputDate = "2020-12-15T03:15:25+0A:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // TZ Hour With Letters 3
     inputDate = "2020-12-15T03:15:25+AA:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // TZ Minute With Letters 1
     inputDate = "2020-12-15T03:15:25+03:A0";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // TZ Minute With Letters 2
     inputDate = "2020-12-15T03:15:25+03:0A";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // TZ Minute With Letters 3
     inputDate = "2020-12-15T03:15:25+03:AA";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // UTC TZ (Z)
     inputDate = "2020-12-15T03:15:25Z";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s        Expected Result: 1    Actual Result: %d\n", inputDate, result );
 
     // Values after Z
     inputDate = "2020-12-15T03:15:25Z1";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s       Expected Result: 0    Actual Result: %d\n", inputDate, result );
 
     // Values after Z (second attempt)
     inputDate = "2020-12-15T03:15:25Z03:00";
-    result = dateIsValid( inputDate, delimPtr );
+    result = dateIsValid( inputDate, strlen(inputDate), delimPtr );
     printf( "Input:%s   Expected Result: 0    Actual Result: %d\n", inputDate, result );
 }
 
