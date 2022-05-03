@@ -34,7 +34,7 @@ int main()
     /*
     ** Unit Tests
     */
-    //unitTests( delimPtr );
+    unitTests( delimPtr );
 }
 
 /*
@@ -572,7 +572,7 @@ void unitTests( char* delimPtr ){
     ** Distinct Value Tests
     */
 
-    // Duplicates properly removed
+    // Duplicates properly removed 1
     {
         FILE* fp;
         char testFail = 0;
@@ -609,6 +609,45 @@ void unitTests( char* delimPtr ){
             }
         }
         printf( "Distinct Value Test 1  Expected Result: 0  Actual Result: %d\n", testFail );
+    }
+
+    // Duplicates properly removed 2
+    {
+        FILE* fp;
+        char testFail = 0;
+        char testBuffer[INPUT_BUFFER_LEN];
+        char* inputTestTimeDatePtr[5] = { "2021-12-15T03:15:25+03:00\n",
+                                          "2020-12-15T03:15:25+03:00\n",
+                                          "2022-12-15T03:15:25+03:00\n",
+                                          "2023-12-15T03:15:25+03:00\n",
+                                          "2021-12-15T03:15:25+03:00\n" };
+
+        char* outputTestTimeDatePtr[4] = { "2021-12-15T03:15:25+03:00\n",
+                                           "2020-12-15T03:15:25+03:00\n",
+                                           "2022-12-15T03:15:25+03:00\n",
+                                           "2023-12-15T03:15:25+03:00\n" };
+
+        fp = fopen( INPUT_FILE_NAME,"w+" );
+
+        for( int index = 0; index < 5; index++ ){
+            fprintf( fp, "%s", inputTestTimeDatePtr[index] );
+        }
+
+        fclose( fp );
+
+        // Run date time process
+        processDateTimeList( delimPtr );
+
+        // Check results
+        fp = fopen( OUTPUT_FILE_NAME, "r" );
+
+        for( int index = 0; index < 4; index++ ){
+            if( (fgets(testBuffer, INPUT_BUFFER_LEN, fp) == NULL) || (strcmp(testBuffer, outputTestTimeDatePtr[index]) != 0) ){
+                testFail = true;
+                break;
+            }
+        }
+        printf( "Distinct Value Test 2  Expected Result: 0  Actual Result: %d\n", testFail );
     }
 }
 
