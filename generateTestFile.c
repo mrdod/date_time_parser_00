@@ -7,6 +7,8 @@
 #include <time.h>
 #include <stdbool.h>
 
+#define INPUT_FILE_NAME  ("input_values.txt")
+
 // Local Prototypes
 static bool appendString( char* tsOutput, int* tsIndex, int width, int min, int max );
 
@@ -26,13 +28,13 @@ int generateTestFile( long numberOfEntries ){
     FILE* fp;
 
     // Set seed for random function to be based on current time
-    srand(time(NULL));
+    srand( time(NULL) );
 
     char* templateTimeDatePtr = "2020-12-15T03:15:25+03:00";
     int timeDatePtrLen = strlen(templateTimeDatePtr);
 
     // Open input values file
-    fp = fopen("input_values.txt","w+");
+    fp = fopen( INPUT_FILE_NAME, "w+" );
 
     for( long index = 0; index < numberOfEntries; index++ ){
         int tsIndex = 0;
@@ -146,6 +148,9 @@ int generateTestFile( long numberOfEntries ){
  *   width    - Desired number of digits of appended string
  *   min      - Minimum allowed value
  *   max      - Maximum allowed value
+ *
+ * Outputs
+ *   Returns true if successful
  */
 static bool appendString( char* tsOutput, int* tsIndex, int width, int min, int max ){
     bool retVal = false;

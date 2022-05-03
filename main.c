@@ -6,6 +6,8 @@
 #include <main.h>
 
 #define INPUT_BUFFER_LEN (30)
+#define INPUT_FILE_NAME  ("input_values.txt")
+#define OUTPUT_FILE_NAME ("output_values.txt")
 
 // Prototypes
 bool dateIsValid(  char* dateTimePtr, int dateTimePtrLen, char* delimPtr );
@@ -22,7 +24,7 @@ int main()
     /*
     ** Generate Test File
     */
-    //generateTestFile( 20 );
+    generateTestFile( 10000 );
 
     /*
     ** Date / Time Stamp Validation
@@ -32,7 +34,7 @@ int main()
     /*
     ** Unit Tests
     */
-    unitTests( delimPtr );
+    //unitTests( delimPtr );
 }
 
 /*
@@ -57,13 +59,9 @@ void processDateTimeList( char* delimPtr ){
     long validCounter = 0;
     int dateTimePtrLen = 0;
 
-    // Open input file
-    inputFPtr = fopen("input_values.txt","r");
-
-    // Delete previous output file
-    if( remove("output_values.txt") != 0 ){
-        printf( "Unable to delete output_values.txt, attempting to continue...\n" );
-    }
+    // Open files
+    inputFPtr = fopen( INPUT_FILE_NAME,"r" );
+    outputFPtr = fopen( OUTPUT_FILE_NAME, "w+" );
 
     // Read file line by line and run validation
     while( fgets(inputDate, INPUT_BUFFER_LEN, inputFPtr) != NULL ){
@@ -78,10 +76,11 @@ void processDateTimeList( char* delimPtr ){
             }
         }
 
-        // Run validation function on line. If valid, print to output file
+        // Run validation function on line
         if( dateIsValid(inputDate, dateTimePtrLen, delimPtr) ){
-            outputFPtr = fopen("output_values.txt","a+");
+            rewind( outputFPtr );
 
+            // Search for duplicate
             while( true ){
                 // Pull in full line from file. If there are no more lines left, then add to file
                 if( fgets(outputTestDate, INPUT_BUFFER_LEN, outputFPtr) == NULL ){
@@ -95,13 +94,11 @@ void processDateTimeList( char* delimPtr ){
                     break;
                 }
             }
-
-            fclose( outputFPtr );
         }
     }
 
     fclose( inputFPtr );
-
+    fclose( outputFPtr );
 
     printf( "Task completed. %lu of %lu entries valid\n", validCounter, totalCounter );
 }
@@ -574,10 +571,12 @@ void unitTests( char* delimPtr ){
     /*
     ** Distinct Value Tests
     */
+
+    // Duplicates properly removed
     {
         FILE* fp;
         char testFail = 0;
-        char* testBuffer[INPUT_BUFFER_LEN];
+        char testBuffer[INPUT_BUFFER_LEN];
         char* inputTestTimeDatePtr[5] = { "2020-12-15T03:15:25+03:00\n",
                                           "2021-12-15T03:15:25+03:00\n",
                                           "2021-12-15T03:15:25+03:00\n",
@@ -589,7 +588,7 @@ void unitTests( char* delimPtr ){
                                            "2022-12-15T03:15:25+03:00\n",
                                            "2023-12-15T03:15:25+03:00\n" };
 
-        fp = fopen("input_values.txt","w+");
+        fp = fopen( INPUT_FILE_NAME,"w+" );
 
         for( int index = 0; index < 5; index++ ){
             fprintf( fp, "%s", inputTestTimeDatePtr[index] );
@@ -601,7 +600,7 @@ void unitTests( char* delimPtr ){
         processDateTimeList( delimPtr );
 
         // Check results
-        fp = fopen("output_values.txt","r");
+        fp = fopen( OUTPUT_FILE_NAME, "r" );
 
         for( int index = 0; index < 4; index++ ){
             if( (fgets(testBuffer, INPUT_BUFFER_LEN, fp) == NULL) || (strcmp(testBuffer, outputTestTimeDatePtr[index]) != 0) ){
@@ -609,7 +608,7 @@ void unitTests( char* delimPtr ){
                 break;
             }
         }
-        printf( "Distinct Value Test 1   Expected Result: 0    Actual Result: %d\n", testFail );
+        printf( "Distinct Value Test 1  Expected Result: 0  Actual Result: %d\n", testFail );
     }
 }
 
