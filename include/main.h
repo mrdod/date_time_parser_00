@@ -1,3 +1,4 @@
+// Time Date State Enumeration Definition
 typedef enum {
      YEAR = 0,
      MONTH,

@@ -15,6 +15,12 @@ static bool appendString( char* tsOutput, int* tsIndex, int width, int min, int 
  * Generate Test File
  *
  * Generates a file containing random time/date stamps for testing.
+ *
+ * Inputs
+ *   numberOfEntries - Total number of entries in test file
+ *
+ * Outputs
+ *   returns 1 if sucessful
  */
 int generateTestFile( long numberOfEntries ){
     FILE* fp;
