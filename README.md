@@ -1,4 +1,4 @@
-# Date Time Time Parser
+# Date Time Parser
 
 This system takes a file with a list of date / time stamps and parses them to ensure they match the specified format.
 
