@@ -162,7 +162,7 @@ bool dateIsValid( char* dateTimePtr, int dateTimePtrLen, char* delimPtr ){
             case( MONTH ):
             {
                 #define MONTH_LEN (2)
-                #define MONTH_MIN (0)
+                #define MONTH_MIN (1)
                 #define MONTH_MAX (12)
 
                 if( !inputIsValid(dateTimePtr, &dateTimeIndex, MONTH_LEN, MONTH_MIN, MONTH_MAX) ){
@@ -177,7 +177,7 @@ bool dateIsValid( char* dateTimePtr, int dateTimePtrLen, char* delimPtr ){
             case( DAY ):
             {
                 #define DAY_LEN (2)
-                #define DAY_MIN (0)
+                #define DAY_MIN (01)
                 #define DAY_MAX (31)
 
                 if( !inputIsValid(dateTimePtr, &dateTimeIndex, DAY_LEN, DAY_MIN, DAY_MAX) ){
