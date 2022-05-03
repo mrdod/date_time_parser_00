@@ -32,7 +32,7 @@ int main()
     /*
     ** Date / Time Stamp Validation
     */
-    // Open file
+    // Open files
     inputFPtr = fopen("input_values.txt","r");
     outputFPtr = fopen("output_values.txt","w+");
 
@@ -80,8 +80,9 @@ int main()
  * Parses input data time string and returns true if has valid format / contains valid values
  *
  * Inputs
- *   dateTimePtr - char array containing the timestamp we want to validate
- *   delimPtr    - char array containing the deliminators we are looking for in the timestamp
+ *   dateTimePtr    - char array containing the timestamp we want to validate
+ *   dateTimePtrLen - Length of timestamp we want to validate
+ *   delimPtr       - char array containing the deliminators we are looking for in the timestamp
  *
  * Outputs
  *   true if valid, false if mot valid or error

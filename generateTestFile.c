@@ -5,9 +5,10 @@
 #include <main.h>
 #include <string.h>
 #include <time.h>
+#include <stdbool.h>
 
-// Prototypes
-static int appendString( char* tsOutput, int* tsIndex, int width, int min, int max );
+// Local Prototypes
+static bool appendString( char* tsOutput, int* tsIndex, int width, int min, int max );
 
 
 /*
@@ -127,22 +128,43 @@ int generateTestFile( long numberOfEntries ){
     return 1;
 }
 
+/*
+ * Append String
+ *
+ * Generates a pseudo random integer of either 2 or 4 digits in width and appends it
+ * the current timestamp output string.
+ *
+ * Inputs
+ *   tsOutput - Pointer to current output string
+ *   tsIndex  - Current index of current output string
+ *   width    - Desired number of digits of appended string
+ *   min      - Minimum allowed value
+ *   max      - Maximum allowed value
+ */
+static bool appendString( char* tsOutput, int* tsIndex, int width, int min, int max ){
+    bool retVal = false;
 
-int appendString( char* tsOutput, int* tsIndex, int width, int min, int max ){
-    char* localString = (char*) calloc( width, sizeof(char) );
-    int localInt = rand() % ( max + 1 );
+    if( tsOutput && tsIndex ){
+        char* localString = (char*) calloc( width, sizeof(char) );
 
-    if( localInt < min ){
-         localInt = min;
+        // Generate a random number
+        int localInt = rand() % ( max + 1 );
+
+        // Ensure value is not less than min
+        if( localInt < min ){
+             localInt = min;
+        }
+
+        // Check width
+        ( width == 4 ) ? sprintf( localString, "%04d", localInt ) : sprintf( localString, "%02d", localInt );
+
+        // Add current value to string
+        for( int localIndex = 0; localIndex < width; localIndex++ ){
+            tsOutput[(*tsIndex)++] = localString[localIndex];
+        }
+
+        free( localString );
     }
 
-    ( width == 4 ) ? sprintf( localString, "%04d", localInt ) : sprintf( localString, "%02d", localInt );
-
-    for( int localIndex = 0; localIndex < width; localIndex++ ){
-        tsOutput[(*tsIndex)++] = localString[localIndex];
-    }
-
-    free( localString );
-
-    return 1;
+    return retVal;
 }
